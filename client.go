@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -71,8 +70,8 @@ func (c *Client) SetHeader(key, value string) {
 	c.Header[key] = value
 }
 
-func (c *Client) GetData(u *url.URL) (int, []byte, error) {
-	req, err := http.NewRequest("GET", u.String(), nil)
+func (c *Client) GetData(u string) (int, []byte, error) {
+	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return 0, nil, err
 	}
