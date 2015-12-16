@@ -1,4 +1,4 @@
-package dialog
+package goclient
 
 import (
 	"io/ioutil"
