@@ -4,22 +4,23 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
 
 type Client struct {
-	c        *http.Client
-	dialTO   time.Duration
-	rwTO     time.Duration
-	Header   map[string]string
-	redirect bool
-	host     string
+	httpclient *http.Client
+	dialTO     time.Duration
+	rwTO       time.Duration
+	Header     map[string]string
+	redirect   bool
+	host       string
 }
 
 func NewTimeoutClient(timeout time.Duration) *Client {
 	client := new(Client)
-	client.c = &http.Client{
+	client.httpclient = &http.Client{
 		Transport: &http.Transport{
 			Dial: func(netw, addr string) (net.Conn, error) {
 				conn, err := net.DialTimeout(netw, addr, timeout)
@@ -37,10 +38,10 @@ func (c *Client) SetTimeout(timeout time.Duration) {
 	if c == nil {
 		return
 	}
-	if c.c == nil {
-		c.c = &http.Client{}
+	if c.httpclient == nil {
+		c.httpclient = &http.Client{}
 	}
-	c.c.Transport = &http.Transport{
+	c.httpclient.Transport = &http.Transport{
 		Dial: func(netw, addr string) (net.Conn, error) {
 			conn, err := net.DialTimeout(netw, addr, timeout)
 			if err != nil {
@@ -81,9 +82,33 @@ func (c *Client) GetData(u string) (int, []byte, error) {
 	}
 	var resp *http.Response
 	if c.redirect {
-		resp, err = c.c.Do(req)
+		resp, err = c.httpclient.Do(req)
 	} else {
-		resp, err = c.c.Transport.RoundTrip(req)
+		resp, err = c.httpclient.Transport.RoundTrip(req)
+	}
+	if err != nil {
+		return 0, nil, err
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	return resp.StatusCode, b, err
+}
+
+func (c *Client) PostForm(u string, data url.Values) (int, []byte, error) {
+	req, err := http.NewRequest("POST", u, strings.NewReader(data.Encode()))
+	if err != nil {
+		return 0, nil, err
+	}
+	for k, v := range c.Header {
+		req.Header.Set(k, v)
+	}
+	req.Host = c.host
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	var resp *http.Response
+	if c.redirect {
+		resp, err = c.httpclient.Do(req)
+	} else {
+		resp, err = c.httpclient.Transport.RoundTrip(req)
 	}
 	if err != nil {
 		return 0, nil, err

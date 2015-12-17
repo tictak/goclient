@@ -2,7 +2,6 @@ package goclient
 
 import (
 	"fmt"
-	"net/url"
 	"testing"
 	"time"
 )
@@ -10,7 +9,6 @@ import (
 func TestClient(t *testing.T) {
 	c := NewTimeoutClient(time.Second)
 	c.SetHeader("Host", "github.com")
-	u, e := url.Parse("http://127.0.0.1:1111")
-	fmt.Println(e)
+	u := "http://127.0.0.1:1111"
 	fmt.Println(c.GetData(u))
 }
